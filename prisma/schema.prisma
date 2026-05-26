@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// (Biarkan generator dan datasource yang sudah ada di filemu)
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+// Enum untuk role user (bisa disesuaikan, misal ADMIN, USER, SELLER)
+enum Role {
+  USER
+  SELLER
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  fullname     String
+  email        String    @unique
+  password     String
+  phone_number String?   // Tanda tanya (?) berarti opsional/boleh kosong
+  role         Role      @default(USER)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  // Relasi One-to-Many ke tabel Addresses
+  addresses    Address[]
+
+  @@map("users")
+}
+
+model Address {
+  id           String   @id @default(uuid())
+  full_address String
+  label        String?  // Misal: "Rumah", "Kantor"
+  province     String
+  province_id  Int
+  city         String
+  city_id      Int
+  district     String
+  district_id  Int
+  
+  user_id      String
+
+  // Relasi ke tabel User (Jika user dihapus, alamat ikut terhapus otomatis via Cascade)
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Relasi ke tabel Master Region RajaOngkir
+  province_ref Province @relation(fields: [province_id], references: [id])
+  city_ref     City     @relation(fields: [city_id], references: [id])
+
+  @@map("addresses")
+}
+
+model Province {
+  id        Int       @id // ID manual dari RajaOngkir (Tanpa autoincrement)
+  name      String
+
+  // Relasi One-to-Many
+  cities    City[]
+  addresses Address[]
+
+  @@map("provinces")
+}
+
+model City {
+  id          Int       @id // ID manual dari RajaOngkir (Tanpa autoincrement)
+  name        String
+  province_id Int
+  
+  // Relasi ke tabel Province
+  province    Province  @relation(fields: [province_id], references: [id], onDelete: Cascade)
+  
+  // Relasi ke tabel Addresses
+  addresses   Address[]
+
+  @@map("cities")
+}
