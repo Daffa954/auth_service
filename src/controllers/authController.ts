@@ -20,7 +20,7 @@ export const authController = {
       });
 
       const token = generateToken({
-        userId: newUser.id,
+        userId: String(newUser.id),
         email: newUser.email,
         role: newUser.role as any
       });
@@ -67,7 +67,7 @@ export const authController = {
 
       // 2. Buat Token JWT
       const token = generateToken({
-        userId: user.id,
+        userId: String(user.id),
         email: user.email,
         role: user.role as any 
       });
