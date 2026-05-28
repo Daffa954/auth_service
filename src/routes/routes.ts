@@ -31,6 +31,7 @@ router.get(
 router.post("/auth/register", verifyPasswordService, authController.register);
 router.post("/auth/login", verifyPasswordService, authController.login);
 router.post("/auth/logout", verifyPasswordService, authController.logout);
+router.get("/auth/profile", [verifyToken, verifyPasswordService], authController.getProfile);
 
 // --- Endpoint ADDRESS ---
 router.post(

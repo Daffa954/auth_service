@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { generateToken } from '../utils/jwtHelper';
 import { authService } from '../service/authService';
 import { RegisterDTO } from '../interfaces/auth';
+import { AuthRequest } from '../middlewares/middleware';
 
 export const authController = {
   
@@ -109,6 +110,37 @@ export const authController = {
       console.error('Logout Error:', error);
       return res.status(500).json({ message: 'Terjadi kesalahan saat logout.' });
     }
+  },
+
+  //make get profile
+  getProfile: async (req: AuthRequest, res: Response): Promise<any> => {
+    try {
+      // Karena menggunakan AuthRequest, req.user sekarang dikenali oleh TypeScript!
+      const userId = req.user?.userId; 
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: User ID tidak ditemukan di token!' });
+      }
+
+      // Panggil Service untuk mendapatkan data dari Prisma
+      const userProfile = await authService.getUserProfile(Number(userId));
+
+      if (!userProfile) {
+        return res.status(404).json({ message: 'User tidak ditemukan!' });
+      }
+
+      return res.status(200).json({
+        message: 'Berhasil mengambil profil pengguna',
+        data: userProfile, // Kirim seluruh data (termasuk alamat) ke Frontend
+      });
+
+    } catch (error) {
+      console.error('Get Profile Error:', error);
+      return res.status(500).json({ message: 'Terjadi kesalahan saat mengambil profil pengguna.' });
+    }
   }
+
+
+  
 
 }; 

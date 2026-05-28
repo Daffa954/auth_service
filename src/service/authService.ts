@@ -54,4 +54,22 @@ export const authService = {
 
     return user;
   },
+async getUserProfile(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        fullname: true,
+        email: true,
+        phone_number: true,
+        role: true,
+        created_at: true,
+      },
+    });
+
+    if (!user) throw new Error("User_Not_Found");
+
+    return user;
+  }
 };

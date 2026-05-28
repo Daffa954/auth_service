@@ -1,0 +1,39 @@
+services:
+  auth-db:
+    image: postgres:17-alpine
+    container_name: auth-db
+    restart: always
+    # Menggunakan port 5434 di luar agar TIDAK bentrok dengan order-db (5433)
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+
+  auth-service:
+    build: .
+    container_name: auth-service
+    restart: unless-stopped
+    # Menggunakan port 4000 untuk Auth Service
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      # Prisma akan membaca DATABASE_URL ini untuk koneksi
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@auth-db:5432/authdb?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PASSWORD=${SERVICE_PASSWORD} # Password untuk komunikasi antar service (API Gateway)
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+volumes:
+  auth_db_data:

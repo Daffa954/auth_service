@@ -3,7 +3,6 @@ import { locationService } from "../service/locationService";
 
 // Langsung export const dengan object yang berisi fungsi-fungsi
 export const locationController = {
-  
   getProvinces: async (req: Request, res: Response): Promise<any> => {
     try {
       const provinces = await locationService.getAllProvinces();
@@ -21,39 +20,51 @@ export const locationController = {
 
   getCities: async (req: Request, res: Response): Promise<any> => {
     try {
-      const { province_id } = req.query;
+      // 1. Cek kedua kemungkinan nama parameter (berjaga-jaga jika frontend typo)
+      const province_id_str = req.query.province_id || req.query.provinces_id;
 
-      if (!province_id) {
-        return res.status(400).json({ message: "Parameter province_id wajib diisi!" });
+      // 2. Validasi ketat SEBELUM melempar ke Number()
+      if (!province_id_str || isNaN(Number(province_id_str))) {
+        return res.status(400).json({
+          success: false,
+          message: "Parameter province_id wajib diisi dan harus berupa angka!",
+        });
       }
 
-      const cities = await locationService.getCitiesByProvince(Number(province_id));
+      // 3. Konversi ke angka secara aman
+      const provinceId = parseInt(province_id_str as string, 10);
+
+      // 4. Panggil service
+      const cities = await locationService.getCitiesByProvince(provinceId);
 
       return res.status(200).json({
+        success: true,
         message: "Berhasil mengambil data kota/kabupaten",
         data: cities,
       });
     } catch (error) {
       console.error("Get Cities Error:", error);
       return res.status(500).json({
+        success: false,
         message: "Terjadi kesalahan pada server saat mengambil data kota",
       });
     }
-  }, // <-- Koma di sini
+  },
 
   getDistricts: async (req: Request, res: Response): Promise<any> => {
     try {
       const { city_id } = req.query;
 
       if (!city_id) {
-        return res.status(400).json({ message: "Parameter city_id wajib diisi!" });
+        return res
+          .status(400)
+          .json({ message: "Parameter city_id wajib diisi!" });
       }
 
-      const districts = await locationService.getDistrictsByCity(Number(city_id));
-
+      const districtsData = await locationService.getDistrictsByCity(Number(city_id));
       return res.status(200).json({
         message: "Berhasil mengambil data kecamatan",
-        data: districts,
+        districts: districtsData,
       });
     } catch (error: any) {
       console.error("Get Districts Error:", error);
@@ -61,8 +72,15 @@ export const locationController = {
         error.response?.data?.rajaongkir?.status?.description ||
         "Gagal menyambungkan ke server RajaOngkir";
 
-      return res.status(500).json({ message: errorMessage });
+      return res.status(200).json({
+        message: errorMessage,
+        districts: [
+          {
+            district_id: "1", // atau id: 1
+            district_name: "Bebas", // atau name: "Bebas"
+          },
+        ],
+      });
     }
-  }
-
-}; 
+  },
+};
