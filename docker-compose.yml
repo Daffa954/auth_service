@@ -1,36 +1,72 @@
 services:
   auth-db:
-    image: postgres:17-alpine
+    image: mysql:latest
     container_name: auth-db
     restart: always
     # Menggunakan port 5434 di luar agar TIDAK bentrok dengan order-db (5433)
     ports:
-      - "5434:5432"
+      - "5434:3306"
     environment:
-      POSTGRES_DB: authdb
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: marketplace_auth
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d authdb"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 5
     volumes:
-      - auth_db_data:/var/lib/postgresql/data
+      - auth_db_data:/var/lib/mysql
 
-  auth-service:
+  # --- TAMBAHAN PHPMYADMIN ---
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8082:80" # Akses phpMyAdmin di browser lewat http://localhost:8082
+    environment:
+      PMA_HOST: auth-db # Mengarah ke container MySQL di atas
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      auth-db:
+        condition: service_healthy
+  # ---------------------------
+
+  auth-service-1:
+    image: dbigboss/auth-service:v1
     build: .
-    container_name: auth-service
+    container_name: auth-service-1
     restart: unless-stopped
     # Menggunakan port 4000 untuk Auth Service
     ports:
       - "4000:4000"
     environment:
       - PORT=4000
-      # Prisma akan membaca DATABASE_URL ini untuk koneksi
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@auth-db:5432/authdb?schema=public
+      # DIPERBAIKI: Format URL wajib mysql:// dan port 3306 agar Prisma bisa connect ke MySQL
+      - DATABASE_URL=mysql://${DB_USER}:${DB_PASSWORD}@auth-db:3306/marketplace_auth
       - JWT_SECRET=${JWT_SECRET}
-      - SERVICE_PASSWORD=${SERVICE_PASSWORD} # Password untuk komunikasi antar service (API Gateway)
+      - AUTH_SERVICE_PASSWORD=${AUTH_SERVICE_PASSWORD} # Password untuk komunikasi antar service (API Gateway)
+    depends_on:
+      auth-db:
+        condition: service_healthy
+        
+  auth-service-2:
+    image: dbigboss/auth-service:v2
+    build: .
+    container_name: auth-service-2
+    restart: unless-stopped
+    # Menggunakan port 4001 untuk Auth Service
+    ports:
+      - "4001:4000"
+    environment:
+      - PORT=4000
+      # DIPERBAIKI: Format URL wajib mysql:// dan port 3306 agar Prisma bisa connect ke MySQL
+      - DATABASE_URL=mysql://${DB_USER}:${DB_PASSWORD}@auth-db:3306/marketplace_auth
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_PASSWORD=${AUTH_SERVICE_PASSWORD} # Password untuk komunikasi antar service (API Gateway)
     depends_on:
       auth-db:
         condition: service_healthy

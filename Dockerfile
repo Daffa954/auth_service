@@ -1,37 +1,30 @@
-# ==========================================
-# Tahap 1: Builder (Kompilasi TypeScript)
-# ==========================================
+# Tahap 1: Builder
 FROM node:20-alpine AS builder
-
-# Set direktori kerja di dalam container
 WORKDIR /app
-
-# Salin file package.json dan install semua dependencies (termasuk devDependencies seperti TypeScript)
 COPY package*.json ./
 RUN npm install
-
-# Salin seluruh source code aplikasi
 COPY . .
-
-# Compile TypeScript menjadi JavaScript (biasanya masuk ke folder /dist)
+RUN npx prisma generate
 RUN npm run build
 
-# ==========================================
-# Tahap 2: Runner (Server Produksi)
-# ==========================================
+# Tahap 2: Runner
 FROM node:20-alpine
-
 WORKDIR /app
 
-# Salin package.json lagi, tapi kali ini install HANYA dependencies untuk produksi
+# Copy package.json dan install production dependencies
 COPY package*.json ./
 RUN npm install --omit=dev
 
-# Salin HANYA hasil build (folder /dist) dari tahap 1
-COPY --from=builder /app/dist ./dist
+# Install prisma secara global agar dikenali oleh sistem container
+RUN npm install -g prisma@6
 
-# Ekspos port API Gateway (Berdasarkan kodingan sebelumnya, biasanya port 2000)
+# Copy hasil build dan folder prisma yang sudah di-generate
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
 EXPOSE 4000
 
-# Jalankan aplikasi yang sudah dicompile
-CMD ["node", "dist/index.js"]
+# Langsung panggil 'prisma' (tanpa npx) karena sudah diinstal global
+CMD prisma db push && node dist/index.js
