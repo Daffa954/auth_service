@@ -76,8 +76,8 @@ export const locationController = {
         message: errorMessage,
         districts: [
           {
-            district_id: "1", // atau id: 1
-            district_name: "Bebas", // atau name: "Bebas"
+            id: "1", // atau id: 1
+            name: "Bebas", // atau name: "Bebas"
           },
         ],
       });

@@ -2,6 +2,8 @@ services:
   auth-db:
     image: mysql:latest
     container_name: auth-db
+    networks:
+      - marketplace_net  # <-- Masukkan service ini ke jaringan
     restart: always
     # Menggunakan port 5434 di luar agar TIDAK bentrok dengan order-db (5433)
     ports:
@@ -22,6 +24,8 @@ services:
   # --- TAMBAHAN PHPMYADMIN ---
   phpmyadmin:
     image: phpmyadmin:latest
+    networks:
+      - marketplace_net  # <-- Masukkan service ini ke jaringan
     container_name: phpmyadmin
     restart: unless-stopped
     ports:
@@ -37,6 +41,8 @@ services:
 
   auth-service-1:
     image: dbigboss/auth-service:v1
+    networks:
+      - marketplace_net  # <-- Masukkan service ini ke jaringan
     build: .
     container_name: auth-service-1
     restart: unless-stopped
@@ -55,6 +61,8 @@ services:
         
   auth-service-2:
     image: dbigboss/auth-service:v2
+    networks:
+      - marketplace_net  # <-- Masukkan service ini ke jaringan
     build: .
     container_name: auth-service-2
     restart: unless-stopped
@@ -73,3 +81,7 @@ services:
 
 volumes:
   auth_db_data:
+
+networks:
+  marketplace_net:
+    external: true
