@@ -10,7 +10,11 @@ const router = Router();
 // --- Endpoint LOKASI ---
 
 //add headers "X-Sercvice-Password" with value from .env AUTH_SERVICE_PASSWORD to all request
+//add prefix "authservice" to all endpoint
 
+router.get("/", (req, res) => {
+  res.json({ message: "Auth Service is alive!" });
+});
 router.get(
   "/locations/provinces",
   verifyPasswordService,
@@ -31,7 +35,11 @@ router.get(
 router.post("/auth/register", verifyPasswordService, authController.register);
 router.post("/auth/login", verifyPasswordService, authController.login);
 router.post("/auth/logout", verifyPasswordService, authController.logout);
-router.get("/auth/profile", [verifyToken, verifyPasswordService], authController.getProfile);
+router.get(
+  "/auth/profile",
+  [verifyToken, verifyPasswordService],
+  authController.getProfile,
+);
 
 // --- Endpoint ADDRESS ---
 router.post(
